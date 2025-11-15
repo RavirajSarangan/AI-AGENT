@@ -1,0 +1,390 @@
+"use client";
+
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ChevronRight,
+  ArrowLeft,
+  Bot,
+  MessageSquare,
+  Globe,
+  GitBranch,
+  Tag,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ExecutionStep {
+  id: string;
+  type: "condition" | "ai" | "send_message" | "http_request" | "tag";
+  name: string;
+  status: "success" | "error" | "skipped";
+  duration: number;
+  input: any;
+  output: any;
+  error?: string;
+}
+
+interface Execution {
+  id: string;
+  workflowId: string;
+  workflowName: string;
+  timestamp: Date;
+  status: "success" | "error";
+  duration: number;
+  trigger: string;
+  steps: ExecutionStep[];
+}
+
+export default function WorkflowLogsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const workflowId = params.id as string;
+
+  const [selectedExecution, setSelectedExecution] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Mock data - replace with real-time Firestore
+  const executions: Execution[] = [
+    {
+      id: "exec-1",
+      workflowId: workflowId,
+      workflowName: "Pricing Q&A",
+      timestamp: new Date(Date.now() - 5 * 60 * 1000),
+      status: "success",
+      duration: 1245,
+      trigger: "Message: 'What are your prices?'",
+      steps: [
+        {
+          id: "step-1",
+          type: "condition",
+          name: "Check if message contains 'price'",
+          status: "success",
+          duration: 45,
+          input: { message: "What are your prices?" },
+          output: { matched: true },
+        },
+        {
+          id: "step-2",
+          type: "ai",
+          name: "Generate pricing response",
+          status: "success",
+          duration: 890,
+          input: { prompt: "Respond to pricing question" },
+          output: {
+            response:
+              "Our pricing starts at $49/month for the Starter plan, $149/month for Pro, and custom pricing for Enterprise.",
+          },
+        },
+        {
+          id: "step-3",
+          type: "send_message",
+          name: "Send WhatsApp message",
+          status: "success",
+          duration: 310,
+          input: {
+            message:
+              "Our pricing starts at $49/month for the Starter plan, $149/month for Pro, and custom pricing for Enterprise.",
+          },
+          output: { messageId: "wamid.abc123", status: "sent" },
+        },
+      ],
+    },
+    {
+      id: "exec-2",
+      workflowId: workflowId,
+      workflowName: "Pricing Q&A",
+      timestamp: new Date(Date.now() - 15 * 60 * 1000),
+      status: "error",
+      duration: 567,
+      trigger: "Message: 'How much does it cost?'",
+      steps: [
+        {
+          id: "step-1",
+          type: "condition",
+          name: "Check if message contains 'price'",
+          status: "success",
+          duration: 42,
+          input: { message: "How much does it cost?" },
+          output: { matched: true },
+        },
+        {
+          id: "step-2",
+          type: "ai",
+          name: "Generate pricing response",
+          status: "error",
+          duration: 525,
+          input: { prompt: "Respond to pricing question" },
+          output: null,
+          error: "AI service timeout",
+        },
+      ],
+    },
+  ];
+
+  const filteredExecutions =
+    statusFilter === "all"
+      ? executions
+      : executions.filter((e) => e.status === statusFilter);
+
+  const selectedExecutionData = executions.find(
+    (e) => e.id === selectedExecution
+  );
+
+  const formatDuration = (ms: number) => {
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  };
+
+  const formatTime = (date: Date) => {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+    }).format(date);
+  };
+
+  const getStepIcon = (type: ExecutionStep["type"]) => {
+    switch (type) {
+      case "condition":
+        return <GitBranch className="h-4 w-4" />;
+      case "ai":
+        return <Bot className="h-4 w-4" />;
+      case "send_message":
+        return <MessageSquare className="h-4 w-4" />;
+      case "http_request":
+        return <Globe className="h-4 w-4" />;
+      case "tag":
+        return <Tag className="h-4 w-4" />;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/workflows")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Workflow Execution Logs</h1>
+            <p className="text-muted-foreground">
+              View detailed execution history and debug issues
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_500px]">
+        {/* Left: Executions List */}
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="flex gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Executions</SelectItem>
+                <SelectItem value="success">Success Only</SelectItem>
+                <SelectItem value="error">Errors Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Executions Table */}
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Trigger</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredExecutions.map((execution) => (
+                  <TableRow
+                    key={execution.id}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedExecution === execution.id && "bg-muted"
+                    )}
+                    onClick={() => setSelectedExecution(execution.id)}
+                  >
+                    <TableCell className="text-sm">
+                      {formatTime(execution.timestamp)}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate text-sm">
+                      {execution.trigger}
+                    </TableCell>
+                    <TableCell>
+                      {execution.status === "success" ? (
+                        <Badge variant="default" className="bg-green-500">
+                          <CheckCircle2 className="mr-1 h-3 w-3" />
+                          Success
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive">
+                          <XCircle className="mr-1 h-3 w-3" />
+                          Error
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {formatDuration(execution.duration)}
+                    </TableCell>
+                    <TableCell>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
+
+        {/* Right: Execution Detail */}
+        <div>
+          {selectedExecutionData ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Execution Details</CardTitle>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  {formatTime(selectedExecutionData.timestamp)}
+                  <span>•</span>
+                  <span>{formatDuration(selectedExecutionData.duration)}</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Trigger Info */}
+                <div className="rounded-lg border p-3">
+                  <p className="text-sm font-medium">Trigger</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedExecutionData.trigger}
+                  </p>
+                </div>
+
+                {/* Steps Timeline */}
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Execution Steps</p>
+                  {selectedExecutionData.steps.map((step, index) => (
+                    <div key={step.id} className="relative pl-6">
+                      {/* Timeline Line */}
+                      {index < selectedExecutionData.steps.length - 1 && (
+                        <div className="absolute left-[11px] top-8 h-full w-0.5 bg-border" />
+                      )}
+
+                      {/* Step Card */}
+                      <div className="rounded-lg border bg-card">
+                        <div className="flex items-start gap-3 p-3">
+                          {/* Status Icon */}
+                          <div
+                            className={cn(
+                              "absolute left-0 flex h-6 w-6 items-center justify-center rounded-full border-2 bg-background",
+                              step.status === "success" &&
+                                "border-green-500 text-green-500",
+                              step.status === "error" &&
+                                "border-destructive text-destructive",
+                              step.status === "skipped" &&
+                                "border-muted-foreground text-muted-foreground"
+                            )}
+                          >
+                            {step.status === "success" && (
+                              <CheckCircle2 className="h-4 w-4" />
+                            )}
+                            {step.status === "error" && (
+                              <XCircle className="h-4 w-4" />
+                            )}
+                            {step.status === "skipped" && (
+                              <Clock className="h-4 w-4" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2">
+                              {getStepIcon(step.type)}
+                              <p className="font-medium text-sm">{step.name}</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDuration(step.duration)}
+                            </p>
+
+                            {step.error && (
+                              <div className="rounded bg-destructive/10 p-2 text-xs text-destructive">
+                                {step.error}
+                              </div>
+                            )}
+
+                            {/* Input/Output */}
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                View Input/Output
+                              </summary>
+                              <div className="mt-2 space-y-2">
+                                <div>
+                                  <p className="font-medium">Input:</p>
+                                  <pre className="mt-1 rounded bg-muted p-2 overflow-x-auto">
+                                    {JSON.stringify(step.input, null, 2)}
+                                  </pre>
+                                </div>
+                                {step.output && (
+                                  <div>
+                                    <p className="font-medium">Output:</p>
+                                    <pre className="mt-1 rounded bg-muted p-2 overflow-x-auto">
+                                      {JSON.stringify(step.output, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                            </details>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="flex h-64 items-center justify-center">
+              <p className="text-muted-foreground">
+                Select an execution to view details
+              </p>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

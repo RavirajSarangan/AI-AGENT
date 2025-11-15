@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // SECURITY: These are SECURE RULES for production
+    // Only authenticated users with proper tenant access can read/write
+    // ============================================
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user belongs to tenant
+    function belongsToTenant(tenantId) {
+      return isAuthenticated() && 
+             (request.auth.token.tenant_id == tenantId || 
+              request.auth.uid == tenantId);
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.role == 'admin';
+    }
+    
+    // Workflows collection - Only tenant members can access their workflows
+    match /workflows/{workflowId} {
+      allow read: if isAuthenticated() && 
+                     belongsToTenant(resource.data.tenant_id);
+      allow create: if isAuthenticated() && 
+                       belongsToTenant(request.resource.data.tenant_id);
+      allow update, delete: if isAuthenticated() && 
+                               belongsToTenant(resource.data.tenant_id);
+    }
+    
+    // Conversations collection - Only tenant members can access
+    match /conversations/{conversationId} {
+      allow read: if isAuthenticated() && 
+                     belongsToTenant(resource.data.tenant_id);
+      allow create: if isAuthenticated() && 
+                       belongsToTenant(request.resource.data.tenant_id);
+      allow update, delete: if isAuthenticated() && 
+                               belongsToTenant(resource.data.tenant_id);
+    }
+    
+    // Messages collection - Only authenticated users can access
+    match /messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && 
+                               request.auth.uid == resource.data.created_by;
+    }
+    
+    // Contacts collection - Only tenant members can access
+    match /contacts/{contactId} {
+      allow read: if isAuthenticated() && 
+                     belongsToTenant(resource.data.tenant_id);
+      allow create: if isAuthenticated() && 
+                       belongsToTenant(request.resource.data.tenant_id);
+      allow update, delete: if isAuthenticated() && 
+                               belongsToTenant(resource.data.tenant_id);
+    }
+    
+    // Execution logs collection - Read-only for tenant members
+    match /execution_logs/{logId} {
+      allow read: if isAuthenticated() && 
+                     belongsToTenant(resource.data.tenant_id);
+      allow create: if isAuthenticated(); // System can create logs
+      allow update, delete: if isAdmin(); // Only admins can modify logs
+    }
+    
+    // Tenant settings collection - Only tenant members can access
+    match /tenant_settings/{tenantId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow update: if isAuthenticated() && 
+                       belongsToTenant(tenantId) && 
+                       isAdmin();
+    }
+    
+    // Users collection - Users can read all, but only update themselves
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // TEMPORARY DEMO MODE (for testing without auth)
+    // REMOVE THIS SECTION IN PRODUCTION!
+    // ============================================
+    // Uncomment ONLY for local development without authentication:
+    /*
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    */
+  }
+}

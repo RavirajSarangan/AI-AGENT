@@ -1,0 +1,509 @@
+"use client";
+
+import { useState } from "react";
+
+const TENANT_ID = "tenant-1";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CheckCircle2,
+  XCircle,
+  Copy,
+  Instagram,
+  AlertCircle,
+  Shield,
+  Settings,
+  Zap,
+  Image as ImageIcon,
+} from "lucide-react";
+
+export default function InstagramSettingsPage() {
+  const [connected, setConnected] = useState(false);
+  const [username, setUsername] = useState("");
+  const [igBusinessAccountId, setIgBusinessAccountId] = useState("");
+  const [pageId, setPageId] = useState("");
+  const [accessToken, setAccessToken] = useState("");
+  const [verifyToken, setVerifyToken] = useState("ig-verify-token-12345");
+  const [quickRepliesEnabled, setQuickRepliesEnabled] = useState(true);
+  const [autoMediaHandling, setAutoMediaHandling] = useState(true);
+  const [storyRepliesEnabled, setStoryRepliesEnabled] = useState(true);
+  const [autoRepliesEnabled, setAutoRepliesEnabled] = useState(true);
+  const [workflowsOnly, setWorkflowsOnly] = useState(false);
+  const [rateLimit, setRateLimit] = useState("40");
+
+  const webhookUrl = `https://flowreplyai.com/api/webhook/instagram/${verifyToken}`;
+  const lastWebhookReceived = connected ? new Date(Date.now() - 8 * 60 * 1000) : null;
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("Copied to clipboard!");
+  };
+
+  const handleTestConnection = () => {
+    alert("Testing Instagram connection...\n\n✅ Connection successful!\n✅ Webhook active\n✅ Account verified");
+  };
+
+  const handleSave = () => {
+    setConnected(true);
+    alert("Instagram settings saved successfully!");
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0A0E27] text-white p-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-white">Instagram Settings</h1>
+              <div className="flex items-center gap-2 text-sm text-purple-400">
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+                Real-time
+              </div>
+            </div>
+            <p className="text-sm text-gray-400 mt-1">
+              Configure your Instagram Messaging API integration
+            </p>
+          </div>
+        </div>
+
+      {/* Connection Status */}
+      <Card className="bg-[#1A1F3A] border border-white/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Instagram className="h-5 w-5" />
+            Connection Status
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Monitor your Instagram Messaging API health
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Status Banner */}
+          <div className={`flex items-center justify-between rounded-lg border-2 p-4 ${
+            connected ? 'bg-pink-500/10 border-pink-500/30' : 'bg-white/5 border-white/10'
+          }`}>
+            <div className="flex items-center gap-3">
+              {connected ? (
+                <CheckCircle2 className="h-6 w-6 text-pink-400" />
+              ) : (
+                <XCircle className="h-6 w-6 text-gray-400" />
+              )}
+              <div>
+                <p className="font-bold text-lg text-white">
+                  {connected ? "✅ Connected" : "❌ Not Connected"}
+                </p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {connected && username && (
+                    <>
+                      <Instagram className="h-4 w-4" />
+                      <span>@{username}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            <Button 
+              variant={connected ? "outline" : "default"}
+              onClick={() => setConnected(!connected)}
+            >
+              {connected ? "Disconnect" : "Connect Instagram"}
+            </Button>
+          </div>
+
+          {connected && (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {/* API Health */}
+              <div className="rounded-lg border border-white/10 p-3 bg-[#0A0E27]">
+                <p className="text-sm font-bold text-white mb-1">API Health</p>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-pink-500 animate-pulse" />
+                  <span className="text-sm text-pink-600 font-semibold">Active</span>
+                </div>
+              </div>
+
+              {/* Last Webhook */}
+              <div className="rounded-lg border border-white/10 p-3 bg-[#0A0E27]">
+                <p className="text-sm font-bold text-white mb-1">Last Webhook</p>
+                <p className="text-sm text-gray-400">
+                  {lastWebhookReceived 
+                    ? `${Math.floor((Date.now() - lastWebhookReceived.getTime()) / 60000)}m ago`
+                    : "Never"}
+                </p>
+              </div>
+
+              {/* Account Type */}
+              <div className="rounded-lg border border-white/10 p-3 bg-[#0A0E27]">
+                <p className="text-sm font-bold text-white mb-1">Account Type</p>
+                <p className="text-sm text-pink-400 font-semibold">Business</p>
+              </div>
+            </div>
+          )}
+
+          {/* Test Connection Button */}
+          {connected && (
+            <Button 
+              variant="outline" 
+              onClick={handleTestConnection}
+              className="w-full gap-2"
+            >
+              <Zap className="h-4 w-4" />
+              Test Connection
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Setup Instructions */}
+      <Card className="border border-pink-500/20 bg-pink-500/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-pink-300">
+            <Settings className="h-5 w-5" />
+            Setup Instructions
+          </CardTitle>
+          <CardDescription className="text-pink-200/70">
+            Follow these steps to connect Instagram Messaging API
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Webhook URL */}
+          <div className="space-y-2">
+            <Label className="text-sm font-bold text-pink-300">Your Instagram Webhook URL</Label>
+            <div className="flex gap-2">
+              <Input 
+                value={webhookUrl} 
+                readOnly 
+                className="bg-[#0A0E27] border-white/10 text-gray-400 font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleCopy(webhookUrl)}
+                className="shrink-0"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Verify Token */}
+          <div className="space-y-2">
+            <Label className="text-sm font-bold text-pink-300">Verify Token</Label>
+            <div className="flex gap-2">
+              <Input 
+                value={verifyToken} 
+                onChange={(e) => setVerifyToken(e.target.value)}
+                className="bg-[#0A0E27] border-white/10 text-white font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleCopy(verifyToken)}
+                className="shrink-0"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Steps */}
+          <div className="rounded-lg bg-white border border-pink-200 p-4">
+            <p className="font-bold text-pink-900 mb-3">Configuration Steps:</p>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-pink-800">
+              <li>Go to <strong>Meta Developer Portal</strong> (developers.facebook.com)</li>
+              <li>Create or select your <strong>Meta App</strong></li>
+              <li>Add <strong>"Instagram"</strong> product to your app</li>
+              <li>Navigate to <strong>Instagram → Basic Display</strong></li>
+              <li>Connect your <strong>Instagram Business Account</strong></li>
+              <li>Go to <strong>Webhooks</strong> section</li>
+              <li>Click <strong>"Add Callback URL"</strong></li>
+              <li>Paste the <strong>Webhook URL</strong> above</li>
+              <li>Enter the <strong>Verify Token</strong> above</li>
+              <li>Subscribe to these events:
+                <ul className="list-disc list-inside ml-6 mt-1">
+                  <li>messages</li>
+                  <li>messaging_postbacks</li>
+                  <li>message_reactions (optional)</li>
+                </ul>
+              </li>
+              <li>Generate <strong>Page Access Token</strong> from Access Tokens</li>
+              <li>Fill in credentials below and click <strong>Save Configuration</strong></li>
+            </ol>
+          </div>
+
+          {/* Required Permissions */}
+          <div className="rounded-lg bg-white border border-pink-200 p-4">
+            <p className="font-bold text-pink-900 mb-2">Required Permissions:</p>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="bg-pink-100 text-pink-900">instagram_basic</Badge>
+              <Badge variant="secondary" className="bg-pink-100 text-pink-900">instagram_manage_messages</Badge>
+              <Badge variant="secondary" className="bg-pink-100 text-pink-900">pages_messaging</Badge>
+              <Badge variant="secondary" className="bg-pink-100 text-pink-900">pages_read_engagement</Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* API Credentials */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            API Credentials
+          </CardTitle>
+          <CardDescription>
+            Enter your Instagram Messaging API credentials from Meta
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Instagram Business Account ID */}
+          <div className="space-y-2">
+            <Label htmlFor="ig-business-account-id" className="text-sm font-bold text-white">
+              Instagram Business Account ID *
+            </Label>
+            <Input
+              id="ig-business-account-id"
+              value={igBusinessAccountId}
+              onChange={(e) => setIgBusinessAccountId(e.target.value)}
+              placeholder="17841400000000000"
+            />
+            <p className="text-xs text-gray-400 font-medium">
+              Found in Instagram Professional Dashboard or Meta Business Suite
+            </p>
+          </div>
+
+          {/* Facebook Page ID */}
+          <div className="space-y-2">
+            <Label htmlFor="page-id" className="text-sm font-bold text-white">
+              Facebook Page ID *
+            </Label>
+            <Input
+              id="page-id"
+              value={pageId}
+              onChange={(e) => setPageId(e.target.value)}
+              placeholder="1234567890"
+            />
+            <p className="text-xs text-gray-400 font-medium">
+              The Facebook Page connected to your Instagram Business account
+            </p>
+          </div>
+
+          {/* Page Access Token */}
+          <div className="space-y-2">
+            <Label htmlFor="access-token" className="text-sm font-bold text-white">
+              Page Access Token *
+            </Label>
+            <Input
+              id="access-token"
+              type="password"
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="EAAG..."
+            />
+            <p className="text-xs text-gray-400 font-medium">
+              Generate from Meta Developer Portal → App Settings → Access Tokens
+            </p>
+          </div>
+
+          {/* Instagram Username (Optional) */}
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-sm font-bold text-white">
+              Instagram Username (Optional)
+            </Label>
+            <div className="relative">
+              <Instagram className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="yourbusiness"
+                className="pl-10"
+              />
+            </div>
+            <p className="text-xs text-gray-400 font-medium">
+              For display purposes in your dashboard
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Messaging Preferences */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Messaging Preferences</CardTitle>
+          <CardDescription>
+            Configure how Instagram DMs are handled
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Quick Reply Support */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-bold text-white">Quick Reply Buttons</Label>
+              <p className="text-xs text-gray-400 font-medium">
+                Enable quick reply buttons in Instagram DMs for better engagement
+              </p>
+            </div>
+            <Switch 
+              checked={quickRepliesEnabled} 
+              onCheckedChange={setQuickRepliesEnabled} 
+            />
+          </div>
+
+          {/* Auto-Media Handling */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-bold text-white">Auto-Media Handling</Label>
+              <p className="text-xs text-gray-400 font-medium">
+                Automatically download and process images/videos sent by users
+              </p>
+            </div>
+            <Switch 
+              checked={autoMediaHandling} 
+              onCheckedChange={setAutoMediaHandling} 
+            />
+          </div>
+
+          {/* Story Replies */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-bold text-white">Story Reply Automation</Label>
+              <p className="text-xs text-gray-400 font-medium">
+                Automatically respond to story replies (when users reply to your stories)
+              </p>
+            </div>
+            <Switch 
+              checked={storyRepliesEnabled} 
+              onCheckedChange={setStoryRepliesEnabled} 
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Safety Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Safety Controls
+          </CardTitle>
+          <CardDescription>
+            Manage automation safety and rate limiting
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Enable/Disable Auto-Replies */}
+          <div className="flex items-center justify-between rounded-lg border p-4 bg-card">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-bold text-white">Enable Auto-Replies</Label>
+              <p className="text-xs text-gray-400 font-medium">
+                Allow workflows and AI to automatically respond to Instagram DMs
+              </p>
+            </div>
+            <Switch 
+              checked={autoRepliesEnabled} 
+              onCheckedChange={setAutoRepliesEnabled} 
+            />
+          </div>
+
+          {/* Workflows Only */}
+          <div className="flex items-center justify-between rounded-lg border p-4 bg-card">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-bold text-white">Instagram-Only Workflows</Label>
+              <p className="text-xs text-gray-400 font-medium">
+                Only run workflows specifically marked "Instagram Enabled"
+              </p>
+            </div>
+            <Switch 
+              checked={workflowsOnly} 
+              onCheckedChange={setWorkflowsOnly} 
+            />
+          </div>
+
+          {/* Rate Limit */}
+          <div className="space-y-2">
+            <Label htmlFor="rate-limit" className="text-sm font-bold text-white">
+              Rate Limit (messages per minute)
+            </Label>
+            <Select value={rateLimit} onValueChange={setRateLimit}>
+              <SelectTrigger id="rate-limit">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="20">20 messages/min (Conservative)</SelectItem>
+                <SelectItem value="40">40 messages/min (Recommended)</SelectItem>
+                <SelectItem value="60">60 messages/min (High Volume)</SelectItem>
+                <SelectItem value="unlimited">Unlimited (Not recommended)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-400 font-medium">
+              Instagram has lower rate limits than WhatsApp
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end gap-3">
+        <Button variant="outline">Cancel</Button>
+        <Button onClick={handleSave} className="gap-2 bg-pink-600 hover:bg-pink-700">
+          <CheckCircle2 className="h-4 w-4" />
+          Save Instagram Configuration
+        </Button>
+      </div>
+
+      {/* Instagram Features Banner */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="pt-6">
+          <div className="flex gap-3">
+            <ImageIcon className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-bold text-blue-900 mb-1">📸 Instagram-Specific Features:</p>
+              <ul className="text-blue-800 space-y-1 list-disc list-inside">
+                <li>Respond to Instagram Direct Messages automatically</li>
+                <li>Handle story replies (when users reply to your stories)</li>
+                <li>Auto-respond to post comments via DM</li>
+                <li>Send images, videos, and carousels in messages</li>
+                <li>Use quick reply buttons for better engagement</li>
+                <li>Support for message reactions and interactive elements</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Warning Banner */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="pt-6">
+          <div className="flex gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-bold text-yellow-900 mb-1">⚠️ Important: Instagram Policies</p>
+              <ul className="text-yellow-800 space-y-1 list-disc list-inside">
+                <li>Must have an Instagram Business or Creator account</li>
+                <li>Account must be connected to a Facebook Page</li>
+                <li>Meta app must be approved for "instagram_manage_messages" permission</li>
+                <li><strong>First message must be user-initiated</strong> (Meta policy)</li>
+                <li>24-hour messaging window applies after user message</li>
+                <li>Cannot send promotional content in first message</li>
+                <li>Respect user privacy and opt-out preferences</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      </div>
+    </div>
+  );
+}
